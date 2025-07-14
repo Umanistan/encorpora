@@ -16,12 +16,9 @@ import {
 import { useState } from "react";
 import { SettingsIcon } from "lucide-react";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { SettingsComponent, SettingsProps } from "./SettingsComponent";
+import { SettingsComponent } from "./SettingsComponent";
 
-export const DrawerDialogSetting: React.FC<SettingsProps> = ({
-  onSettingsChange,
-  settings,
-}) => {
+export const DrawerDialogSetting: React.FC = () => {
   const [open, setOpen] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
@@ -37,10 +34,7 @@ export const DrawerDialogSetting: React.FC<SettingsProps> = ({
           <DialogHeader>
             <DialogTitle>Settings</DialogTitle>
           </DialogHeader>
-          <SettingsComponent
-            onSettingsChange={onSettingsChange}
-            settings={settings}
-          />
+          <SettingsComponent />
         </DialogContent>
       </Dialog>
     );
@@ -57,10 +51,7 @@ export const DrawerDialogSetting: React.FC<SettingsProps> = ({
         <DrawerHeader className="text-left">
           <DrawerTitle>Settings</DrawerTitle>
         </DrawerHeader>
-        <SettingsComponent
-          onSettingsChange={onSettingsChange}
-          settings={settings}
-        />
+        <SettingsComponent />
       </DrawerContent>
     </Drawer>
   );

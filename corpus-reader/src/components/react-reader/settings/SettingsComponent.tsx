@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import FontSettings from "./FontSettings";
 import LayoutSettings from "./LayoutSettings";
 import { ThemeSettings } from "./ThemeSettings";
+import { useSettingsStore } from "@/store/useSettingsStore";
 
 export type Settings = {
   fontSize: number;
@@ -13,15 +14,11 @@ export type Settings = {
   theme: string;
 };
 
-export type SettingsProps = {
-  settings: Settings;
-  onSettingsChange: (settings: Partial<Settings>) => void;
-};
+// Props are managed via zustand store
 
-export const SettingsComponent = ({
-  settings,
-  onSettingsChange,
-}: SettingsProps) => {
+export const SettingsComponent = () => {
+  const settings = useSettingsStore((state) => state.settings);
+  const onSettingsChange = useSettingsStore((state) => state.setSettings);
   return (
     <div className="px-4">
       <Tabs defaultValue="font" className="w-full">
@@ -31,22 +28,13 @@ export const SettingsComponent = ({
           <TabsTrigger value="theme">Theme</TabsTrigger>
         </TabsList>
         <TabsContent value="font">
-          <FontSettings
-            onSettingsChange={onSettingsChange}
-            settings={settings}
-          />
+          <FontSettings onSettingsChange={onSettingsChange} settings={settings} />
         </TabsContent>
         <TabsContent value="layout">
-          <LayoutSettings
-            onSettingsChange={onSettingsChange}
-            settings={settings}
-          />
+          <LayoutSettings onSettingsChange={onSettingsChange} settings={settings} />
         </TabsContent>
         <TabsContent value="theme">
-          <ThemeSettings
-            onSettingsChange={onSettingsChange}
-            settings={settings}
-          />
+          <ThemeSettings onSettingsChange={onSettingsChange} settings={settings} />
         </TabsContent>
       </Tabs>
     </div>

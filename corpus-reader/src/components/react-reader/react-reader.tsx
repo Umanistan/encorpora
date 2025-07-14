@@ -19,6 +19,7 @@ import { SearchComponent, type SearchResult } from "./SearchComponent";
 import { Button } from "../ui/button";
 import { ArrowLeft } from "lucide-react";
 import { ThemeProviderContext } from "@/components/ThemeProvider";
+import { useSettingsStore } from "@/store/useSettingsStore";
 
 type SwipeWrapperProps = {
   children: ReactNode;
@@ -59,6 +60,8 @@ export class ReactReader extends PureComponent<
   IReactReaderProps,
   IReactReaderState
 > {
+  // unsubscribe function for settings store subscription
+  unsubscribeSettings?: () => void;
   static contextType = ThemeProviderContext;
   declare context: React.ContextType<typeof ThemeProviderContext>;
 
@@ -80,15 +83,18 @@ export class ReactReader extends PureComponent<
   readerRef = React.createRef<EpubView>();
   constructor(props: IReactReaderProps) {
     super(props);
+    // Initialize settings from persistent store
+    const stored = useSettingsStore.getState().settings;
+    this.state = {
+      ...this.state,
+      settings: stored,
+    };
     // Initialize reader theme from global theme context
     const globalTheme = this.context?.theme;
     if (globalTheme && globalTheme !== 'system') {
       this.state = {
         ...this.state,
-        settings: {
-          ...this.state.settings,
-          theme: globalTheme,
-        },
+        settings: { ...this.state.settings, theme: globalTheme },
       };
     }
   }
@@ -101,6 +107,18 @@ export class ReactReader extends PureComponent<
         () => this.applySettings()
       );
     }
+    // Apply initial settings
+    this.applySettings();
+    // Subscribe to settings store updates
+    this.unsubscribeSettings = useSettingsStore.subscribe((state: any) => {
+      const settings = state.settings;
+      this.setState({ settings }, () => {
+        this.applySettings();
+      });
+    });
+  }
+  componentWillUnmount() {
+    this.unsubscribeSettings?.();
   }
 
   next = () => {
@@ -394,10 +412,7 @@ export class ReactReader extends PureComponent<
               onResultClick={this.handleSearchResultClick}
               isLoading={this.state.isSearching}
             />
-            <DrawerDialogSetting
-              settings={settings}
-              onSettingsChange={this.onSettingsChange}
-            />
+            <DrawerDialogSetting />
           </div>
           <div style={{ ...readerStyles.titleArea, color: themeColors.color }}>
             {title}
