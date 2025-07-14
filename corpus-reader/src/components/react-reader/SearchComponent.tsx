@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -39,14 +39,29 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const debounceTimer = useRef<number | null>(null);
+  // Local state to indicate searching during debounce
+  const [isSearching, setIsSearching] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 768px)");
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    onSearch(query);
+    // Indicate that a search is pending (debounce period)
+    setIsSearching(true);
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    debounceTimer.current = window.setTimeout(() => {
+      onSearch(query);
+      // Debounce complete, clear local searching state
+      setIsSearching(false);
+    }, 500);
   };
 
   const handleClearSearch = () => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
     setSearchQuery("");
     onSearch("");
   };
@@ -81,17 +96,17 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
         </div>
       </div>
 
-      {isLoading && (
+      {(isLoading || isSearching) && (
         <div className="text-center py-4 text-sm">Searching...</div>
       )}
 
-      {!isLoading && searchQuery && searchResults.length === 0 && (
+      {!isLoading && !isSearching && searchQuery && searchResults.length === 0 && (
         <div className="text-center py-4 text-sm">
           No results found for "{searchQuery}"
         </div>
       )}
 
-      {!isLoading && searchResults.length > 0 && (
+      {!isLoading && !isSearching && searchResults.length > 0 && (
         <div>
           <div className="text-sm mb-2 font-medium">
             {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}{" "}
@@ -105,12 +120,6 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
                   className="p-2 rounded cursor-pointer transition-colors hover:bg-opacity-20"
                   style={{
                     backgroundColor: "transparent",
-                  }}
-                  onMouseEnter={(e) => {
-                    // e.currentTarget.style.backgroundColor = `${themeColors.color}20`;
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent";
                   }}
                   onClick={() => handleResultClick(result.cfi)}
                 >
@@ -131,6 +140,13 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
       )}
     </div>
   );
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, []);
 
   if (isDesktop) {
     return (

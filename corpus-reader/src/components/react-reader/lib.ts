@@ -21,7 +21,7 @@ export type SearchResult = {
 export const searchInBook = async (
   book: Book,
   query: string,
-  contextLength: number = 15
+  contextLength: number = 25
 ): Promise<SearchResult[]> => {
   if (!query) {
     return [];
