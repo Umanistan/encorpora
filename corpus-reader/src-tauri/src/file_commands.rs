@@ -16,7 +16,11 @@ pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
     let resource_dir = app.path().app_local_data_dir().unwrap();
     let temp_file_path = resource_dir.join(TEMPORAL_EPUB_PATH);
 
-    let file_path_option = app.dialog().file().blocking_pick_file();
+    let file_path_option = app
+    .dialog()
+    .file()
+    .add_filter("Only EPubs and PDF'S", &["epub", "pdf"])
+    .blocking_pick_file();
 
     let path = match file_path_option {
         Some(p) => p,
