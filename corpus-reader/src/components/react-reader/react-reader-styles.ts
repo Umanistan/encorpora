@@ -24,7 +24,6 @@ export const ReactReaderStyle: IReactReaderStyle = {
     zIndex: 1,
     height: '100%',
     width: '100%',
-    backgroundColor: '#fff',
     transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
   },
   containerExpanded: {
@@ -36,7 +35,7 @@ export const ReactReaderStyle: IReactReaderStyle = {
     left: 50,
     right: 50,
     textAlign: 'center',
-    color: '#999',
+  
   },
   reader: {
     position: 'absolute',

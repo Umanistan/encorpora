@@ -205,11 +205,12 @@ export class EpubView extends Component<IEpubViewProps, IEpubViewState> {
   render() {
     const { isLoaded } = this.state;
     return (
-      <div className="relative h-full w-full" style={{backgroundColor: 'inherit', color: 'inherit'}}>
-        {(isLoaded && <div ref={this.viewerRef} className="h-full" style={{backgroundColor: 'inherit'}} />) || (
+      <div className="relative h-full w-full" >
+        {(isLoaded && <div ref={this.viewerRef} className="h-full"  />) || (
           <Loader text="loading book" />
         )}
       </div>
     );
   }
 }
+``

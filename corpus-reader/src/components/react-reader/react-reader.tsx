@@ -426,7 +426,7 @@ export class ReactReader extends PureComponent<
               trackMouse: true,
             }}
           >
-            <div style={readerStyles.reader}>
+            <div style={{ ...readerStyles.reader, backgroundColor: themeColors.background }}>
               <EpubView
                 ref={this.readerRef}
                 {...props}
@@ -436,18 +436,6 @@ export class ReactReader extends PureComponent<
               <div style={readerStyles.swipeWrapper} />
             </div>
           </SwipeWrapper>
-          {/* <button
-            style={Object.assign({}, themedArrowStyle, readerStyles.prev)}
-            onClick={isRTL ? this.next : this.prev}
-          >
-            ‹
-          </button>
-          <button
-            style={Object.assign({}, themedArrowStyle, readerStyles.next)}
-            onClick={isRTL ? this.prev : this.next}
-          >
-            ›
-          </button> */}
         </div>
       </div>
     );
