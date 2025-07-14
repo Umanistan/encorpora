@@ -29,10 +29,6 @@ interface SearchComponentProps {
   searchResults: SearchResult[];
   onResultClick: (cfi: string) => void;
   isLoading?: boolean;
-  themeColors: {
-    background: string;
-    color: string;
-  };
 }
 
 export const SearchComponent: React.FC<SearchComponentProps> = ({
@@ -40,7 +36,6 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
   searchResults,
   onResultClick,
   isLoading = false,
-  themeColors,
 }) => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -62,7 +57,7 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
   };
 
   const SearchContent = () => (
-    <div className="min-h-[400px] p-4" style={{ color: themeColors.color }}>
+    <div className="min-h-[400px] p-4">
       <div className="flex items-center gap-2 mb-3">
         <div className="relative flex-1">
           <Input
@@ -71,11 +66,6 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             className="pr-8"
-            style={{
-              backgroundColor: themeColors.background,
-              borderColor: `${themeColors.color}30`,
-              color: themeColors.color
-            }}
             autoFocus
           />
           {searchQuery && (
@@ -84,7 +74,6 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
               size="sm"
               onClick={handleClearSearch}
               className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 p-0"
-              style={{ color: themeColors.color }}
             >
               <X className="w-3 h-3" />
             </Button>
@@ -93,30 +82,20 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
       </div>
 
       {isLoading && (
-        <div 
-          className="text-center py-4 text-sm"
-          style={{ color: `${themeColors.color}80` }}
-        >
-          Searching...
-        </div>
+        <div className="text-center py-4 text-sm">Searching...</div>
       )}
 
       {!isLoading && searchQuery && searchResults.length === 0 && (
-        <div 
-          className="text-center py-4 text-sm"
-          style={{ color: `${themeColors.color}80` }}
-        >
+        <div className="text-center py-4 text-sm">
           No results found for "{searchQuery}"
         </div>
       )}
 
       {!isLoading && searchResults.length > 0 && (
         <div>
-          <div 
-            className="text-sm mb-2 font-medium"
-            style={{ color: themeColors.color }}
-          >
-            {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found
+          <div className="text-sm mb-2 font-medium">
+            {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}{" "}
+            found
           </div>
           <ScrollArea className="h-72">
             <div className="space-y-2">
@@ -125,25 +104,23 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
                   key={`${result.cfi}-${index}`}
                   className="p-2 rounded cursor-pointer transition-colors hover:bg-opacity-20"
                   style={{
-                    backgroundColor: 'transparent',
-                    border: `1px solid ${themeColors.color}20`
+                    backgroundColor: "transparent",
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = `${themeColors.color}20`;
+                    // e.currentTarget.style.backgroundColor = `${themeColors.color}20`;
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.backgroundColor = "transparent";
                   }}
                   onClick={() => handleResultClick(result.cfi)}
                 >
-                  <div 
+                  <div
                     className="text-sm leading-relaxed"
-                    style={{ color: themeColors.color }}
                     dangerouslySetInnerHTML={{
                       __html: result.excerpt.replace(
-                        new RegExp(`(${searchQuery})`, 'gi'),
-                        `<mark style="background-color: ${themeColors.color}40; color: ${themeColors.color};">$1</mark>`
-                      )
+                        new RegExp(`(${searchQuery})`, "gi"),
+                        `<mark style="background-color: #ee; color: ;">$1</mark>`
+                      ),
                     }}
                   />
                 </div>
@@ -159,27 +136,13 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
     return (
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Search in book"
-            style={{ color: themeColors.color }}
-          >
+          <Button variant="ghost" size="icon" aria-label="Search in book">
             <Search className="w-5 h-5" />
           </Button>
         </DialogTrigger>
-        <DialogContent 
-          className="sm:max-w-[500px]"
-          style={{ 
-            backgroundColor: themeColors.background,
-            borderColor: `${themeColors.color}30`,
-            color: themeColors.color
-          }}
-        >
+        <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle style={{ color: themeColors.color }}>
-              Search in Book
-            </DialogTitle>
+            <DialogTitle>Search in Book</DialogTitle>
           </DialogHeader>
           <SearchContent />
         </DialogContent>
@@ -190,26 +153,13 @@ export const SearchComponent: React.FC<SearchComponentProps> = ({
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Search in book"
-          style={{ color: themeColors.color }}
-        >
+        <Button variant="ghost" size="icon" aria-label="Search in book">
           <Search className="w-5 h-5" />
         </Button>
       </DrawerTrigger>
-      <DrawerContent
-        style={{ 
-          backgroundColor: themeColors.background,
-          borderColor: `${themeColors.color}30`,
-          color: themeColors.color
-        }}
-      >
+      <DrawerContent>
         <DrawerHeader className="text-left">
-          <DrawerTitle style={{ color: themeColors.color }}>
-            Search in Book
-          </DrawerTitle>
+          <DrawerTitle>Search in Book</DrawerTitle>
         </DrawerHeader>
         <SearchContent />
       </DrawerContent>

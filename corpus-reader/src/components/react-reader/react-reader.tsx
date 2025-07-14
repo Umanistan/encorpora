@@ -18,6 +18,7 @@ import { Settings } from "./settings/SettingsComponent";
 import { SearchComponent, type SearchResult } from "./SearchComponent";
 import { Button } from "../ui/button";
 import { ArrowLeft } from "lucide-react";
+import { ThemeProviderContext } from "@/components/ThemeProvider";
 
 type SwipeWrapperProps = {
   children: ReactNode;
@@ -58,6 +59,9 @@ export class ReactReader extends PureComponent<
   IReactReaderProps,
   IReactReaderState
 > {
+  static contextType = ThemeProviderContext;
+  declare context: React.ContextType<typeof ThemeProviderContext>;
+
   state: Readonly<IReactReaderState> = {
     isLoaded: false,
     toc: [],
@@ -70,12 +74,33 @@ export class ReactReader extends PureComponent<
       lineHeight: 1.5,
       textAlign: "justify",
       spread: "auto",
-      theme: "Light",
+      theme: "light",
     },
   };
   readerRef = React.createRef<EpubView>();
   constructor(props: IReactReaderProps) {
     super(props);
+    // Initialize reader theme from global theme context
+    const globalTheme = this.context?.theme;
+    if (globalTheme && globalTheme !== 'system') {
+      this.state = {
+        ...this.state,
+        settings: {
+          ...this.state.settings,
+          theme: globalTheme,
+        },
+      };
+    }
+  }
+
+  componentDidMount() {
+    const { theme: globalTheme } = this.context;
+    if (globalTheme && globalTheme !== "system" && globalTheme !== this.state.settings.theme) {
+      this.setState(
+        { settings: { ...this.state.settings, theme: globalTheme } },
+        () => this.applySettings()
+      );
+    }
   }
 
   next = () => {
@@ -117,10 +142,7 @@ export class ReactReader extends PureComponent<
 
       // Apply theme colors as CSS custom properties to the document root
       // This allows all child components to inherit the theme colors
-      document.documentElement.style.setProperty(
-        "--reader-bg-color",
-        theme.styles.body.background
-      );
+
       document.documentElement.style.setProperty(
         "--reader-text-color",
         theme.styles.body.color
@@ -131,7 +153,6 @@ export class ReactReader extends PureComponent<
         "[data-react-reader-container]"
       ) as HTMLElement;
       if (containerElement) {
-        containerElement.style.backgroundColor = theme.styles.body.background;
         containerElement.style.color = theme.styles.body.color;
 
         // Create a style element for scoped CSS rules
@@ -145,7 +166,6 @@ export class ReactReader extends PureComponent<
         // Apply theme-specific CSS rules for child components
         styleElement.textContent = `
           [data-react-reader-container] {
-            background-color: ${theme.styles.body.background} !important;
             color: ${theme.styles.body.color} !important;
           }
           
@@ -156,21 +176,6 @@ export class ReactReader extends PureComponent<
           
           [data-react-reader-container] .text-muted-foreground {
             color: ${theme.styles.body.color}80 !important;
-          }
-          
-          [data-react-reader-container] .bg-background,
-          [data-react-reader-container] .bg-popover {
-            background-color: ${theme.styles.body.background} !important;
-          }
-          
-          [data-react-reader-container] .border-border {
-            border-color: ${theme.styles.body.color}30 !important;
-          }
-          
-          [data-react-reader-container] .hover\\:bg-accent:hover,
-          [data-react-reader-container] .hover\\:bg-accent\\/30:hover,
-          [data-react-reader-container] .hover\\:bg-accent\\/20:hover {
-            background-color: ${theme.styles.body.color}20 !important;
           }
           
           [data-react-reader-container] button {
@@ -328,17 +333,6 @@ export class ReactReader extends PureComponent<
     }
   }
 
-  componentWillUnmount() {
-    // Clean up injected theme styles
-    const styleElement = document.getElementById("react-reader-theme-styles");
-    if (styleElement) {
-      styleElement.remove();
-    }
-
-    // Remove CSS custom properties
-    document.documentElement.style.removeProperty("--reader-bg-color");
-    document.documentElement.style.removeProperty("--reader-text-color");
-  }
 
   render() {
     const {
@@ -399,7 +393,6 @@ export class ReactReader extends PureComponent<
               searchResults={this.state.searchResults}
               onResultClick={this.handleSearchResultClick}
               isLoading={this.state.isSearching}
-              themeColors={themeColors}
             />
             <DrawerDialogSetting
               settings={settings}
@@ -436,6 +429,7 @@ export class ReactReader extends PureComponent<
               <div style={readerStyles.swipeWrapper} />
             </div>
           </SwipeWrapper>
+
         </div>
       </div>
     );

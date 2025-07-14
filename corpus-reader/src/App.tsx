@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { BookEntry, getLibrary } from "./lib/utils";
 import Loader from "./components/Loader";
 import { Reader } from "./components/Reader2.0";
+import { ThemeProvider } from "./components/ThemeProvider";
 
 function App() {
   const [Books, setBooks] = useState<BookEntry[]>([]);
@@ -39,6 +40,7 @@ function App() {
   }
 
   return (
+    <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
     <Router>
       <div className="min-h-screen bg-background text-foreground">
         <Routes>
@@ -52,6 +54,8 @@ function App() {
         <Toaster richColors />
       </div>
     </Router>
+    </ThemeProvider>
+
   );
 }
 
