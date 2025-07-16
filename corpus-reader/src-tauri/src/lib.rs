@@ -3,6 +3,7 @@ mod config;
 mod db_commands;
 mod epub_commands;
 mod file_commands;
+mod pdf_commands;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

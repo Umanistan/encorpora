@@ -1,26 +1,22 @@
 use crate::config::LIBRARY_DIRECTORY;
 use crate::db_commands::add_book_to_db;
 use crate::epub_commands::{create_epub_cover, get_epub_metadata};
+use crate::pdf_commands::extract_pdf_metadata;
 use regex::Regex;
 use std::{fs, path::PathBuf};
 use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_fs::FsExt;
 
-const TEMPORAL_EPUB_PATH: &str = "temporal.epub";
-
 #[tauri::command]
 pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
-    create_directory_if_not_exist(app.clone(), LIBRARY_DIRECTORY);
-
     let resource_dir = app.path().app_local_data_dir().unwrap();
-    let temp_file_path = resource_dir.join(TEMPORAL_EPUB_PATH);
 
     let file_path_option = app
-    .dialog()
-    .file()
-    .add_filter("Only EPubs and PDF'S", &["epub", "pdf"])
-    .blocking_pick_file();
+        .dialog()
+        .file()
+        .add_filter("Only EPubs and PDF'S", &["epub", "pdf"])
+        .blocking_pick_file();
 
     let path = match file_path_option {
         Some(p) => p,
@@ -30,13 +26,25 @@ pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
         }
     };
 
-    let file_content = match app.fs().read(path) {
+    let file_content = match app.fs().read(path.clone()) {
         Ok(content) => content,
         Err(e) => {
             println!("failed to read file: {}", e);
             return Err(format!("Failed to read file: {}", e));
         }
     };
+
+    let path_buf = path.as_path();
+    let extension = path_buf
+        .unwrap()
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or("");
+
+    let temp_file_path = resource_dir.join(format!("temporal.{}", extension));
+    println!("My temp file is called: {:#?}", temp_file_path);
+
+    create_directory_if_not_exist(app.clone(), LIBRARY_DIRECTORY);
 
     let _ = match fs::write(temp_file_path.clone(), file_content) {
         Ok(path) => path,
@@ -45,9 +53,15 @@ pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
             return Err(format!("Failed to write file: {}", e));
         }
     };
-
-    let (epub_title, epub_identifier, epub_creator, epub_language, epub_publisher, epub_pubdate) =
-        match get_epub_metadata(&temp_file_path) {
+    if extension == "epub" {
+        let (
+            epub_title,
+            epub_identifier,
+            epub_creator,
+            epub_language,
+            epub_publisher,
+            epub_pubdate,
+        ) = match get_epub_metadata(&temp_file_path) {
             Ok(metadata) => metadata,
             Err(e) => {
                 println!("Failed to extract EPUB metadata: {}", e);
@@ -55,54 +69,85 @@ pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
             }
         };
 
-    let epub_file_name_stem = create_file_name(epub_title.clone(), epub_identifier);
-    let final_epub_filename = format!("{}.epub", epub_file_name_stem);
-    let library_path = resource_dir.join(LIBRARY_DIRECTORY);
-    let new_file_path = library_path.join(final_epub_filename.clone());
-    
-    // Create cover image with error handling
-    let cover_path = library_path
-        .join(format!("{}.png", epub_file_name_stem))
-        .to_str()
-        .unwrap()
-        .to_string();
-    
-    if let Err(e) = create_epub_cover(&temp_file_path, cover_path.clone()) {
-        println!("Warning: Failed to create cover image: {}", e);
-        // Continue without cover image - this is not a fatal error
-    }
+        let epub_file_name_stem = create_file_name(epub_title.clone(), epub_identifier);
+        let final_epub_filename = format!("{}.epub", epub_file_name_stem);
+        let library_path = resource_dir.join(LIBRARY_DIRECTORY);
+        let new_file_path = library_path.join(final_epub_filename.clone());
 
-    if check_if_file_exists(&new_file_path) {
-        let _ = fs::remove_file(&temp_file_path);
-        println!(
-            "File {} already exists",
-            new_file_path.to_str().unwrap().to_string()
-        );
-        return Ok("File already exists".to_string());
-    }
-    let _ = fs::rename(&temp_file_path, new_file_path.clone());
-    add_book_to_db(
-        app,
-        epub_title,
-        epub_creator,
-        library_path
+        // Create cover image with error handling
+        let cover_path = library_path
             .join(format!("{}.png", epub_file_name_stem))
             .to_str()
             .unwrap()
-            .to_string(),
-        epub_language,
-        new_file_path.to_str().unwrap().to_string(),
-        epub_publisher,
-        epub_pubdate,
-    )
-    .await;
+            .to_string();
+
+        if let Err(e) = create_epub_cover(&temp_file_path, cover_path.clone()) {
+            println!("Warning: Failed to create cover image: {}", e);
+            // Continue without cover image - this is not a fatal error
+        }
+
+        if check_if_file_exists(&new_file_path) {
+            let _ = fs::remove_file(&temp_file_path);
+            println!(
+                "File {} already exists",
+                new_file_path.to_str().unwrap().to_string()
+            );
+            return Ok("File already exists".to_string());
+        }
+        let _ = fs::rename(&temp_file_path, new_file_path.clone());
+        add_book_to_db(
+            app,
+            epub_title,
+            epub_creator,
+            library_path
+                .join(format!("{}.png", epub_file_name_stem))
+                .to_str()
+                .unwrap()
+                .to_string(),
+            epub_language,
+            new_file_path.to_str().unwrap().to_string(),
+            epub_publisher,
+            epub_pubdate,
+        )
+        .await;
+    } else if extension == "pdf" {
+        let metadata = extract_pdf_metadata(path.to_string().as_str()).unwrap();
+
+        let epub_file_name_stem =
+            create_file_name(metadata.title.clone(), metadata.creation_date.clone());
+        let final_epub_filename = format!("{}.pdf", epub_file_name_stem);
+        let library_path = resource_dir.join(LIBRARY_DIRECTORY);
+        let new_file_path = library_path.join(final_epub_filename.clone());
+
+        if check_if_file_exists(&new_file_path) {
+            let _ = fs::remove_file(&temp_file_path);
+            println!(
+                "File {} already exists",
+                new_file_path.to_str().unwrap().to_string()
+            );
+            return Ok("File already exists".to_string());
+        }
+
+        let _ = fs::rename(&temp_file_path, new_file_path.clone());
+        add_book_to_db(
+            app,
+            metadata.title,
+            metadata.author,
+            library_path
+                .join(format!("{}.png", epub_file_name_stem))
+                .to_str()
+                .unwrap()
+                .to_string(),
+            "None".to_string(),
+            new_file_path.to_str().unwrap().to_string(),
+            metadata.producer,
+            metadata.creation_date,
+        )
+        .await;
+    }
 
     Ok("File processed successfully".to_string())
 }
-
-
-
-
 
 #[tauri::command]
 pub fn create_directory_if_not_exist(app: tauri::AppHandle, directory_name: &str) {
