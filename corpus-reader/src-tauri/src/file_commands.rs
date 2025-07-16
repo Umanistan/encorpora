@@ -7,9 +7,15 @@ use std::{fs, path::PathBuf};
 use tauri::Manager;
 use tauri_plugin_dialog::DialogExt;
 use tauri_plugin_fs::FsExt;
+use serde::{Deserialize, Serialize};
+#[derive(Serialize, Deserialize)]
+pub struct FileProcessResult {
+    pub message: String,
+    pub file_path: Option<String>,
+}
 
 #[tauri::command]
-pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
+pub async fn pick_file(app: tauri::AppHandle) -> Result<FileProcessResult, String> {
     let resource_dir = app.path().app_local_data_dir().unwrap();
 
     let file_path_option = app
@@ -22,7 +28,10 @@ pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
         Some(p) => p,
         None => {
             println!("No file selected by the user.");
-            return Ok("No file selected by the user.".to_string());
+            return Ok(FileProcessResult {
+                message: "No file selected by the user.".to_string(),
+                file_path: None,
+            });
         }
     };
 
@@ -53,6 +62,7 @@ pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
             return Err(format!("Failed to write file: {}", e));
         }
     };
+
     if extension == "epub" {
         let (
             epub_title,
@@ -83,7 +93,6 @@ pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
 
         if let Err(e) = create_epub_cover(&temp_file_path, cover_path.clone()) {
             println!("Warning: Failed to create cover image: {}", e);
-            // Continue without cover image - this is not a fatal error
         }
 
         if check_if_file_exists(&new_file_path) {
@@ -92,8 +101,12 @@ pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
                 "File {} already exists",
                 new_file_path.to_str().unwrap().to_string()
             );
-            return Ok("File already exists".to_string());
+            return Ok(FileProcessResult {
+                message: "File already exists".to_string(),
+                file_path: Some(new_file_path.to_str().unwrap().to_string()),
+            });
         }
+
         let _ = fs::rename(&temp_file_path, new_file_path.clone());
         add_book_to_db(
             app,
@@ -110,6 +123,12 @@ pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
             epub_pubdate,
         )
         .await;
+
+        return Ok(FileProcessResult {
+            message: "EPUB processed successfully".to_string(),
+            file_path: Some(new_file_path.to_str().unwrap().to_string()),
+        });
+
     } else if extension == "pdf" {
         let metadata = extract_pdf_metadata(path.to_string().as_str()).unwrap();
 
@@ -125,7 +144,10 @@ pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
                 "File {} already exists",
                 new_file_path.to_str().unwrap().to_string()
             );
-            return Ok("File already exists".to_string());
+            return Ok(FileProcessResult {
+                message: "File already exists".to_string(),
+                file_path: Some(new_file_path.to_str().unwrap().to_string()),
+            });
         }
 
         let _ = fs::rename(&temp_file_path, new_file_path.clone());
@@ -144,9 +166,17 @@ pub async fn pick_file(app: tauri::AppHandle) -> Result<String, String> {
             metadata.creation_date,
         )
         .await;
+
+        return Ok(FileProcessResult {
+            message: "PDF processed successfully".to_string(),
+            file_path: Some(new_file_path.to_str().unwrap().to_string()),
+        });
     }
 
-    Ok("File processed successfully".to_string())
+    Ok(FileProcessResult {
+        message: "File processed successfully".to_string(),
+        file_path: None,
+    })
 }
 
 #[tauri::command]

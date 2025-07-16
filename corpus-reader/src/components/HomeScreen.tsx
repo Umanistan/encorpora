@@ -31,6 +31,7 @@ import FeaturedBookCard from "@/components/FeaturedBookCard";
 import HomeHeader from "@/components/HomeHeader";
 import Loader from "@/components/Loader";
 import { invoke } from "@tauri-apps/api/core";
+import { generatePdfCover } from "@/lib/getPdfCover";
 
 interface HomeScreenProps {
   books: BookEntry[];
@@ -136,7 +137,12 @@ export function HomeScreen({ books, onBookAdded }: HomeScreenProps) {
     let message = "";
     try {
       setLoadingBooks(true);
-      message = await invoke("pick_file");
+      const result = await invoke("pick_file");
+      message = result.message
+
+      if(result.file_path.includes('pdf')) {
+        await generatePdfCover(result.file_path, result.file_path )
+      }
       onBookAdded();
 
     } catch (error) {
