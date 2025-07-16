@@ -13,6 +13,7 @@ import { BookEntry, getLibrary } from "./lib/utils";
 import Loader from "./components/Loader";
 import { Reader } from "./components/Reader2.0";
 import { ThemeProvider } from "./components/ThemeProvider";
+import { BasicPdfRender } from "./components/BasicPdfRender";
 
 function App() {
   const [Books, setBooks] = useState<BookEntry[]>([]);
@@ -49,6 +50,7 @@ function App() {
             element={<HomeScreen books={Books} onBookAdded={fetchBooks} />}
           />
           <Route path="/reader/:bookPath" element={<Reader onBookRead={fetchBooks} />} />
+          <Route path="/pdf/:bookPath" element={<BasicPdfRender />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
         <Toaster richColors />

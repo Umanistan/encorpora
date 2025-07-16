@@ -2,7 +2,6 @@ import { useLoadImage } from "@/lib/hooks/useLoadImage";
 import { BookEntry } from "@/lib/utils";
 import { BookIcon, EyeIcon, BookOpenIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
 const BookCard = ({
   book,
   kind,
@@ -13,14 +12,16 @@ const BookCard = ({
   const navigate = useNavigate();
   const { imageUrl } = useLoadImage(book.cover_path);
 
-  const handleBookClick = (bookPath: string) => {
-    navigate(`/reader/${encodeURIComponent(bookPath)}`);
+  const handleBookClick = async (bookPath: string) => {
+    if (bookPath.includes("pdf"))
+      navigate(`/pdf/${encodeURIComponent(bookPath)}`);
+    else navigate(`/reader/${encodeURIComponent(bookPath)}`);
   };
   if (kind === "card") {
     return (
       <div
         className="group cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-        onClick={() => handleBookClick(book.path)}
+        onClick={async () => await handleBookClick(book.path)}
       >
         <div className="relative aspect-[2/3] mb-3 rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-muted/50 to-muted/80">
           {imageUrl ? (
@@ -105,7 +106,7 @@ const BookCard = ({
     return (
       <div
         className="group flex items-center p-2  rounded-xl hover:bg-muted/30 active:bg-muted/50 transition-all duration-300 cursor-pointer border border-border/40 hover:border-border/80 shadow-sm hover:shadow-lg bg-card/50 backdrop-blur-sm"
-        onClick={() => handleBookClick(book.path)}
+        onClick={async () => await handleBookClick(book.path)}
       >
         <div className="relative h-20 w-14 mr-4 flex-shrink-0 overflow-hidden rounded-lg shadow-md group-hover:shadow-lg transition-all duration-300">
           {imageUrl ? (

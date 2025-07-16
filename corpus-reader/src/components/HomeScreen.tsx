@@ -32,6 +32,8 @@ import HomeHeader from "@/components/HomeHeader";
 import Loader from "@/components/Loader";
 import { invoke } from "@tauri-apps/api/core";
 import { generatePdfCover } from "@/lib/getPdfCover";
+import { error, info } from "@tauri-apps/plugin-log";
+
 
 interface HomeScreenProps {
   books: BookEntry[];

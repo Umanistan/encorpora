@@ -15,8 +15,10 @@ const FeaturedBookCard = ({ book }: { book: BookEntry }) => {
   const { imageUrl } = useLoadImage(book.cover_path);
   const navigate = useNavigate();
 
-  const handleContinueReading = () => {
-    navigate(`/reader/${encodeURIComponent(book.path)}`);
+  const handleBookClick = async () => {
+    const bookPath = book.path
+    if (bookPath.includes("pdf")) navigate(`/pdf/${encodeURIComponent(bookPath)}`);
+    else navigate(`/reader/${encodeURIComponent(bookPath)}`);
   };
 
   return (
@@ -41,7 +43,7 @@ const FeaturedBookCard = ({ book }: { book: BookEntry }) => {
           <div className="absolute inset-0 items-center justify-center z-20 opacity-0 group-hover:opacity-100 transition-all duration-300 hidden md:flex">
             <button
               type="button"
-              onClick={handleContinueReading}
+              onClick={async () => await handleBookClick()}
               aria-label="Play Book"
               className="cursor-pointer bg-primary/90 backdrop-blur-sm rounded-full p-4 shadow-2xl transform scale-75 group-hover:scale-100 transition-transform duration-300 focus:outline-none"
             >
@@ -139,7 +141,7 @@ const FeaturedBookCard = ({ book }: { book: BookEntry }) => {
           {/* Action button */}
           <div className="mt-4 sm:mt-6 md:mt-8">
             <Button
-              onClick={handleContinueReading}
+              onClick={async () => await handleBookClick()}
               className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 h-11 sm:h-12 text-sm sm:text-base font-medium"
               size="lg"
             >
