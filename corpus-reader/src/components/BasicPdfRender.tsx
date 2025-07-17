@@ -25,9 +25,11 @@ import {
   ArrowUpDown,
   Moon,
   Sun,
+  ArrowLeft,
 } from "lucide-react";
 import PdfToc from "./pdfViewer/PdfToc";
 import { useTheme } from "@/components/ThemeProvider";
+import { usePdfViewerStore } from "@/store/usePdfViewerStore";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -39,15 +41,25 @@ function BasicPdfRender() {
   const { bookPath } = useParams<{ bookPath: string }>();
   const { theme, setTheme } = useTheme();
 
+  // Use Zustand store for persistent settings
+  const {
+    settings,
+    setScale,
+    setRotation,
+    setViewMode,
+    setReadingMode,
+    setTheme: setPdfTheme,
+  } = usePdfViewerStore();
+
+  // Local state for non-persistent values
   const [numPages, setNumPages] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [scale, setScale] = useState(1.2);
-  const [rotation, setRotation] = useState(0);
-  const [viewMode, setViewMode] = useState<"single" | "grid">("single");
-  const [readingMode, setReadingMode] = useState<"page" | "vertical">("page");
+
+  // Extract settings from store
+  const { scale, rotation, viewMode, readingMode } = settings;
 
   useEffect(() => {
     if (!bookPath) {
@@ -122,15 +134,15 @@ function BasicPdfRender() {
   };
 
   const zoomIn = () => {
-    setScale((prev) => Math.min(3, prev + 0.2));
+    setScale(scale + 0.2);
   };
 
   const zoomOut = () => {
-    setScale((prev) => Math.max(0.5, prev - 0.2));
+    setScale(scale - 0.2);
   };
 
   const rotate = () => {
-    setRotation((prev) => (prev + 90) % 360);
+    setRotation(rotation + 90);
   };
 
   const goToPage = (pageNumber: number) => {
@@ -139,11 +151,11 @@ function BasicPdfRender() {
   };
 
   const toggleViewMode = () => {
-    setViewMode((prev) => (prev === "single" ? "grid" : "single"));
+    setViewMode(viewMode === "single" ? "grid" : "single");
   };
 
   const cycleReadingMode = () => {
-    setReadingMode((prev) => (prev === "page" ? "vertical" : "page"));
+    setReadingMode(readingMode === "page" ? "vertical" : "page");
   };
 
   const toggleTheme = () => {
@@ -203,7 +215,16 @@ function BasicPdfRender() {
       <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10 p-4">
         <div className="flex items-center justify-between">
           {/* Left side - Title and page info */}
+
           <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => window.history.back()}
+              aria-label="Back"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
               <span className="font-medium">PDF Reader</span>
