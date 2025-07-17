@@ -7,6 +7,7 @@ export interface PdfViewerSettings {
   viewMode: "single" | "grid";
   readingMode: "page" | "vertical";
   theme: "light" | "dark" | "system";
+  brightness: number; // 0-100, where 100 is normal brightness
 }
 
 interface PdfViewerState {
@@ -16,6 +17,7 @@ interface PdfViewerState {
   setViewMode: (viewMode: "single" | "grid") => void;
   setReadingMode: (readingMode: "page" | "vertical") => void;
   setTheme: (theme: "light" | "dark" | "system") => void;
+  setBrightness: (brightness: number) => void;
   updateSettings: (partial: Partial<PdfViewerSettings>) => void;
   resetSettings: () => void;
 }
@@ -27,6 +29,7 @@ const initialSettings: PdfViewerSettings = {
   viewMode: "single",
   readingMode: "page",
   theme: "system",
+  brightness: 100,
 };
 
 export const usePdfViewerStore = create<PdfViewerState>()(
@@ -62,6 +65,13 @@ export const usePdfViewerStore = create<PdfViewerState>()(
       setTheme: (theme: "light" | "dark" | "system") => {
         set((state) => ({
           settings: { ...state.settings, theme }
+        }));
+      },
+      
+      setBrightness: (brightness: number) => {
+        const clampedBrightness = Math.max(20, Math.min(150, brightness));
+        set((state) => ({
+          settings: { ...state.settings, brightness: clampedBrightness }
         }));
       },
       

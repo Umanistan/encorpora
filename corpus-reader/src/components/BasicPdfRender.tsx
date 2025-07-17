@@ -26,6 +26,9 @@ import {
   Moon,
   Sun,
   ArrowLeft,
+  Lightbulb,
+  Minus,
+  Plus,
 } from "lucide-react";
 import PdfToc from "./pdfViewer/PdfToc";
 import { useTheme } from "@/components/ThemeProvider";
@@ -49,6 +52,7 @@ function BasicPdfRender() {
     setViewMode,
     setReadingMode,
     setTheme: setPdfTheme,
+    setBrightness,
   } = usePdfViewerStore();
 
   // Local state for non-persistent values
@@ -59,7 +63,7 @@ function BasicPdfRender() {
   const [loading, setLoading] = useState(true);
 
   // Extract settings from store
-  const { scale, rotation, viewMode, readingMode } = settings;
+  const { scale, rotation, viewMode, readingMode, brightness } = settings;
 
   useEffect(() => {
     if (!bookPath) {
@@ -160,6 +164,14 @@ function BasicPdfRender() {
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
+  };
+
+  const increaseBrightness = () => {
+    setBrightness(brightness + 10);
+  };
+
+  const decreaseBrightness = () => {
+    setBrightness(brightness - 10);
   };
 
   const getReadingModeIcon = () => {
@@ -346,6 +358,38 @@ function BasicPdfRender() {
 
             <Separator orientation="vertical" className="h-6" />
 
+            {/* Brightness controls */}
+            <div className="flex items-center gap-1 border rounded-lg p-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={decreaseBrightness}
+                disabled={brightness <= 20}
+                className="h-6 w-6 p-0"
+                title="Decrease brightness"
+              >
+                <Minus className="h-3 w-3" />
+              </Button>
+              <div className="flex items-center gap-1 px-1">
+                <Lightbulb className="h-3 w-3" />
+                <span className="text-xs font-medium min-w-[2.5rem] text-center">
+                  {brightness}%
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={increaseBrightness}
+                disabled={brightness >= 150}
+                className="h-6 w-6 p-0"
+                title="Increase brightness"
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
+
+            <Separator orientation="vertical" className="h-6" />
+
             {/* Theme toggle */}
             <Button
               variant="ghost"
@@ -375,7 +419,7 @@ function BasicPdfRender() {
           readingMode === "page" ? (
             // Page Mode - Single page at a time
             <div className="flex justify-center p-6">
-              <div className="max-w-full">
+              <div className="max-w-full relative">
                 <Document
                   file={file}
                   onLoadSuccess={onDocumentLoadSuccess}
@@ -387,17 +431,24 @@ function BasicPdfRender() {
                   }
                   className="shadow-lg"
                 >
-                  <Page
-                    pageNumber={currentPage}
-                    scale={scale}
-                    rotate={rotation}
-                    loading={
-                      <div className="flex items-center justify-center p-8 bg-muted/20 rounded-lg">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      </div>
-                    }
-                    className="shadow-lg border rounded-lg overflow-hidden"
-                  />
+                  <div
+                    className="relative"
+                    style={{
+                      filter: `brightness(${brightness}%)`,
+                    }}
+                  >
+                    <Page
+                      pageNumber={currentPage}
+                      scale={scale}
+                      rotate={rotation}
+                      loading={
+                        <div className="flex items-center justify-center p-8 bg-muted/20 rounded-lg">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                      }
+                      className="shadow-lg border rounded-lg overflow-hidden"
+                    />
+                  </div>
                 </Document>
               </div>
             </div>
@@ -415,27 +466,33 @@ function BasicPdfRender() {
                     </div>
                   }
                 >
-                  {numPages &&
-                    Array.from({ length: numPages }, (_, i) => i + 1).map(
-                      (pageNum) => (
-                        <div key={pageNum} className="relative">
-                          <Page
-                            pageNumber={pageNum}
-                            scale={scale}
-                            rotate={rotation}
-                            loading={
-                              <div className="flex items-center justify-center p-8 bg-muted/20 rounded-lg">
-                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                              </div>
-                            }
-                            className="shadow-lg border rounded-lg overflow-hidden mb-4"
-                          />
-                          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                            Page {pageNum}
+                  <div
+                    style={{
+                      filter: `brightness(${brightness}%)`,
+                    }}
+                  >
+                    {numPages &&
+                      Array.from({ length: numPages }, (_, i) => i + 1).map(
+                        (pageNum) => (
+                          <div key={pageNum} className="relative">
+                            <Page
+                              pageNumber={pageNum}
+                              scale={scale}
+                              rotate={rotation}
+                              loading={
+                                <div className="flex items-center justify-center p-8 bg-muted/20 rounded-lg">
+                                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                </div>
+                              }
+                              className="shadow-lg border rounded-lg overflow-hidden mb-4"
+                            />
+                            <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                              Page {pageNum}
+                            </div>
                           </div>
-                        </div>
-                      )
-                    )}
+                        )
+                      )}
+                  </div>
                 </Document>
               </div>
             </div>
@@ -453,7 +510,12 @@ function BasicPdfRender() {
                 </div>
               }
             >
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              <div
+                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4"
+                style={{
+                  filter: `brightness(${brightness}%)`,
+                }}
+              >
                 {numPages &&
                   Array.from({ length: numPages }, (_, i) => i + 1).map(
                     (pageNum) => (
