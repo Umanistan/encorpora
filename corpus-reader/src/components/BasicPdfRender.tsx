@@ -44,6 +44,7 @@ import {
   Menu,
 } from "lucide-react";
 import PdfToc from "./pdfViewer/PdfToc";
+import PdfSearch from "./PdfSearch";
 import { useTheme } from "@/components/ThemeProvider";
 import { usePdfViewerStore } from "@/store/usePdfViewerStore";
 
@@ -308,7 +309,7 @@ function BasicPdfRender() {
             <div className="flex items-center gap-1 md:gap-2 min-w-0">
               <FileText className="h-4 w-4 md:h-5 md:w-5 text-primary shrink-0" />
               <span className="font-medium text-sm md:text-base truncate">
-              {bookInfo?.title}
+                {bookInfo?.title}
               </span>
             </div>
             {numPages && (
@@ -535,8 +536,14 @@ function BasicPdfRender() {
                       </div>
                     </div>
 
-                    {/* Table of Contents */}
-                    <div className="col-span-2 pt-2">
+                    {/* Search and Table of Contents */}
+                    <div className="col-span-2 pt-2 space-y-4">
+                      <PdfSearch
+                        file={file}
+                        numPages={numPages}
+                        onGoToPage={goToPage}
+                        currentPage={currentPage}
+                      />
                       <PdfToc
                         currentPage={currentPage}
                         file={file}
@@ -552,6 +559,13 @@ function BasicPdfRender() {
 
             {/* Desktop controls - always visible on larger screens */}
             <div className="hidden md:flex items-center gap-2">
+              <PdfSearch
+                file={file}
+                numPages={numPages}
+                onGoToPage={goToPage}
+                currentPage={currentPage}
+              />
+
               <PdfToc
                 currentPage={currentPage}
                 file={file}
