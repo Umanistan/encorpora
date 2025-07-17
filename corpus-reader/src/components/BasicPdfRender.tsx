@@ -23,8 +23,11 @@ import {
   Grid3X3,
   ScrollText,
   ArrowUpDown,
+  Moon,
+  Sun,
 } from "lucide-react";
 import PdfToc from "./pdfViewer/PdfToc";
+import { useTheme } from "@/components/ThemeProvider";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -34,6 +37,7 @@ interface DocumentLoadSuccess {
 
 function BasicPdfRender() {
   const { bookPath } = useParams<{ bookPath: string }>();
+  const { theme, setTheme } = useTheme();
 
   const [numPages, setNumPages] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -140,6 +144,10 @@ function BasicPdfRender() {
 
   const cycleReadingMode = () => {
     setReadingMode((prev) => (prev === "page" ? "vertical" : "page"));
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
   };
 
   const getReadingModeIcon = () => {
@@ -310,8 +318,30 @@ function BasicPdfRender() {
               size="sm"
               onClick={rotate}
               className="h-8 w-8 p-0"
+              title="Rotate PDF"
             >
               <RotateCw className="h-4 w-4" />
+            </Button>
+
+            <Separator orientation="vertical" className="h-6" />
+
+            {/* Theme toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleTheme}
+              className="h-8 w-8 p-0"
+              title={
+                theme === "dark"
+                  ? "Switch to Light Mode"
+                  : "Switch to Dark Mode"
+              }
+            >
+              {theme === "dark" ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>
