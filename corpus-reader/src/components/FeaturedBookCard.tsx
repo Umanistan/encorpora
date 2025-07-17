@@ -23,9 +23,9 @@ const FeaturedBookCard = ({ book }: { book: BookEntry }) => {
 
   return (
     <div className="relative overflow-hidden rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 bg-gradient-to-r from-card/80 to-card/60 backdrop-blur-sm border border-border/50 group">
-      <div className="flex flex-col md:flex-row  md:h-[270px]">
+      <div className="flex flex-col md:flex-row h-full">
         {/* Image Section */}
-        <div className="relative w-full md:w-2/5 h-[200px] sm:h-[240px] md:h-full overflow-hidden">
+        <div className="relative w-full md:w-2/5 h-[200px] md:h-auto overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/80 via-black/40 to-transparent z-10" />
           {imageUrl ? (
             <img
@@ -65,7 +65,7 @@ const FeaturedBookCard = ({ book }: { book: BookEntry }) => {
         </div>
 
         {/* Content Section */}
-        <div className="relative flex-1 p-4 sm:p-6 md:p-6 lg:p-8 flex flex-col justify-between">
+        <div className="relative flex-1 p-4 sm:p-6 md:p-6  flex flex-col justify-between">
           <div className="space-y-3 sm:space-y-4">
             <div>
               <h2 className="text-xl sm:text-2xl md:text-2xl lg:text-3xl font-bold mb-2 sm:mb-3 line-clamp-2 text-foreground leading-tight">
@@ -142,7 +142,7 @@ const FeaturedBookCard = ({ book }: { book: BookEntry }) => {
           <div className="mt-4 sm:mt-6 md:mt-8">
             <Button
               onClick={async () => await handleBookClick()}
-              className="w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground shadow-lg hover:shadow-xl transition-all duration-300 h-11 sm:h-12 text-sm sm:text-base font-medium"
+              className="w-full h-11  font-medium cursor-pointer"
               size="lg"
             >
               <BookOpenIcon className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
