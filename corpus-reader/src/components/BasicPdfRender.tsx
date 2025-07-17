@@ -10,13 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+
 import {
   ChevronLeft,
   ChevronRight,
@@ -26,12 +20,11 @@ import {
   FileText,
   AlertCircle,
   Loader2,
-  Menu,
   Grid3X3,
-  BookOpen,
   ScrollText,
   ArrowUpDown,
 } from "lucide-react";
+import PdfToc from "./pdfViewer/PdfToc";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
@@ -51,7 +44,6 @@ function BasicPdfRender() {
   const [rotation, setRotation] = useState(0);
   const [viewMode, setViewMode] = useState<"single" | "grid">("single");
   const [readingMode, setReadingMode] = useState<"page" | "vertical">("page");
-  const [tocOpen, setTocOpen] = useState(false);
 
   useEffect(() => {
     if (!bookPath) {
@@ -140,7 +132,6 @@ function BasicPdfRender() {
   const goToPage = (pageNumber: number) => {
     setCurrentPage(pageNumber);
     setViewMode("single");
-    setTocOpen(false);
   };
 
   const toggleViewMode = () => {
@@ -217,64 +208,13 @@ function BasicPdfRender() {
 
           <div className="flex items-center gap-2">
             {/* Table of Contents */}
-            <Sheet open={tocOpen} onOpenChange={setTocOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <Menu className="h-4 w-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80">
-                <SheetHeader>
-                  <SheetTitle className="flex items-center gap-2">
-                    <BookOpen className="h-5 w-5" />
-                    Table of Contents
-                  </SheetTitle>
-                </SheetHeader>
-                <ScrollArea className="h-full mt-4">
-                  <div className="space-y-2 pr-4">
-                    {numPages &&
-                      Array.from({ length: numPages }, (_, i) => i + 1).map(
-                        (pageNum) => (
-                          <Button
-                            key={pageNum}
-                            variant={
-                              currentPage === pageNum ? "default" : "ghost"
-                            }
-                            className="w-full justify-start h-auto p-3"
-                            onClick={() => goToPage(pageNum)}
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-10 rounded border overflow-hidden flex-shrink-0">
-                                <Document file={file}>
-                                  <Page
-                                    pageNumber={pageNum}
-                                    scale={0.15}
-                                    rotate={rotation}
-                                    loading={
-                                      <div className="w-full h-full bg-muted rounded flex items-center justify-center text-xs">
-                                        {pageNum}
-                                      </div>
-                                    }
-                                    className="w-full h-full object-cover"
-                                  />
-                                </Document>
-                              </div>
-                              <div className="text-left">
-                                <div className="font-medium">
-                                  Page {pageNum}
-                                </div>
-                                <div className="text-xs text-muted-foreground">
-                                  Click to navigate
-                                </div>
-                              </div>
-                            </div>
-                          </Button>
-                        )
-                      )}
-                  </div>
-                </ScrollArea>
-              </SheetContent>
-            </Sheet>
+            <PdfToc
+              currentPage={currentPage}
+              file={file}
+              goToPage={goToPage}
+              numPages={numPages}
+              rotation={rotation}
+            />
 
             <Separator orientation="vertical" className="h-6" />
 
@@ -311,7 +251,6 @@ function BasicPdfRender() {
                 size="sm"
                 onClick={zoomOut}
                 disabled={scale <= 0.5}
-                
               >
                 <ZoomOut className="h-4 w-4" />
               </Button>
@@ -323,7 +262,6 @@ function BasicPdfRender() {
                 size="sm"
                 onClick={zoomIn}
                 disabled={scale >= 3}
-                
               >
                 <ZoomIn className="h-4 w-4" />
               </Button>
@@ -457,23 +395,23 @@ function BasicPdfRender() {
         ) : (
           // Grid View - All Pages
           <div className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              <Document
-                file={file}
-                onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={onDocumentLoadError}
-                loading={
-                  <div className="flex items-center justify-center p-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  </div>
-                }
-              >
+            <Document
+              file={file}
+              onLoadSuccess={onDocumentLoadSuccess}
+              onLoadError={onDocumentLoadError}
+              loading={
+                <div className="flex items-center justify-center p-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              }
+            >
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
                 {numPages &&
                   Array.from({ length: numPages }, (_, i) => i + 1).map(
                     (pageNum) => (
                       <div
                         key={pageNum}
-                        className={`relative cursor-pointer transition-all duration-200 hover:scale-105 ${
+                        className={`max-w-fit relative cursor-pointer transition-all duration-200 hover:scale-105 ${
                           currentPage === pageNum
                             ? "ring-2 ring-primary ring-offset-2 shadow-lg"
                             : "hover:shadow-md"
@@ -486,8 +424,8 @@ function BasicPdfRender() {
                             scale={0.3}
                             rotate={rotation}
                             loading={
-                              <div className="flex items-center justify-center p-4 bg-muted/20 rounded-lg aspect-[3/4]">
-                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                              <div className="flex items-center justify-center p-4 bg-muted/20 rounded-lg">
+                                <Loader2 className="h-4 w-4 animate-spin text-primary max-w-fit" />
                               </div>
                             }
                             className="shadow border rounded-lg overflow-hidden"
@@ -499,8 +437,8 @@ function BasicPdfRender() {
                       </div>
                     )
                   )}
-              </Document>
-            </div>
+              </div>
+            </Document>
           </div>
         )}
       </ScrollArea>
