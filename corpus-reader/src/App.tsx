@@ -13,7 +13,7 @@ import { BookEntry, getLibrary } from "./lib/utils";
 import Loader from "./components/Loader";
 import { Reader } from "./components/Reader2.0";
 import { ThemeProvider } from "./components/ThemeProvider";
-import { BasicPdfRender } from "./components/BasicPdfRender";
+import BasicPdfRender  from "./components/BasicPdfRender";
 
 function App() {
   const [Books, setBooks] = useState<BookEntry[]>([]);

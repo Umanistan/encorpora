@@ -1,149 +1,511 @@
-import { useEffect, useRef, useState } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
-import { useParams } from 'react-router-dom';
-import { readFileSrc } from '@/lib/utils';
+import { readFileSrc } from "@/lib/utils";
+import { useEffect, useState, useCallback } from "react";
+import { Document, Page, pdfjs } from "react-pdf";
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
+import { useParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn,
+  ZoomOut,
+  RotateCw,
+  FileText,
+  AlertCircle,
+  Loader2,
+  Menu,
+  Grid3X3,
+  BookOpen,
+  ScrollText,
+  ArrowUpDown,
+} from "lucide-react";
 
-// Set up the worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.mjs';
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
+interface DocumentLoadSuccess {
+  numPages: number;
+}
 
-export const BasicPdfRender = () => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const renderTaskRef = useRef<pdfjsLib.RenderTask | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
+function BasicPdfRender() {
   const { bookPath } = useParams<{ bookPath: string }>();
 
+  const [numPages, setNumPages] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  const [file, setFile] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [scale, setScale] = useState(1.2);
+  const [rotation, setRotation] = useState(0);
+  const [viewMode, setViewMode] = useState<"single" | "grid">("single");
+  const [readingMode, setReadingMode] = useState<"page" | "vertical">("page");
+  const [tocOpen, setTocOpen] = useState(false);
 
   useEffect(() => {
-    if (!bookPath) return;
+    if (!bookPath) {
+      console.log("No bookPath provided");
+      return;
+    }
 
-    const loadPdf = async () => {
-      try {
-        const pa = await readFileSrc(bookPath)
-        setLoading(true);
-        setError(null);
-        
-        const loadingTask = pdfjsLib.getDocument(pa);
-        const pdf = await loadingTask.promise;
-        
-        setPdfDoc(pdf);
-        setTotalPages(pdf.numPages);
-        setCurrentPage(1);
-      } catch (err) {
-        console.error('Error loading PDF:', err);
-        setError('Failed to load PDF file');
-      } finally {
+    console.log("Loading PDF from path:", bookPath);
+    setLoading(true);
+    setError(null);
+    setFile(null);
+
+    let isActive = true;
+
+    // Add a timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      if (isActive) {
+        console.error("PDF loading timeout");
+        setError("PDF loading timed out. Please try again.");
         setLoading(false);
       }
-    };
+    }, 15000); // 15 second timeout
 
-    loadPdf();
+    readFileSrc(bookPath)
+      .then(async (fileData) => {
+        if (!isActive) return;
+
+        console.log("File data received:", fileData);
+        console.log("File data type:", typeof fileData);
+        setFile(fileData);
+        setError(null);
+        setLoading(false); // Set loading to false immediately after getting file data
+        clearTimeout(timeoutId);
+      })
+      .catch((error) => {
+        if (!isActive) return;
+
+        console.error("Error loading book:", error);
+        setError(`Failed to load PDF file: ${error.message}`);
+        setLoading(false);
+        clearTimeout(timeoutId);
+      });
+
+    return () => {
+      isActive = false;
+      clearTimeout(timeoutId);
+    };
   }, [bookPath]);
 
-  useEffect(() => {
-    if (!pdfDoc || !canvasRef.current) return;
+  const onDocumentLoadSuccess = useCallback(
+    ({ numPages }: DocumentLoadSuccess) => {
+      console.log("PDF loaded successfully with", numPages, "pages");
+      setNumPages(numPages);
+      setError(null);
+      setLoading(false);
+    },
+    []
+  );
 
-    const renderPage = async () => {
-      try {
-        // Cancel any ongoing render operation
-        if (renderTaskRef.current) {
-          renderTaskRef.current.cancel();
-          renderTaskRef.current = null;
-        }
+  const onDocumentLoadError = useCallback((err: Error) => {
+    console.error("PDF load error:", err);
+    setError(`Failed to load PDF: ${err.message}`);
+    setLoading(false);
+  }, []);
 
-        const page = await pdfDoc.getPage(currentPage);
-        const canvas = canvasRef.current!;
-        const context = canvas.getContext('2d')!;
-
-        const viewport = page.getViewport({ scale: 1.5 });
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
-
-        const renderContext = {
-          canvasContext: context,
-          viewport: viewport,
-        };
-
-        // Store the render task so we can cancel it if needed
-        renderTaskRef.current = page.render(renderContext);
-        await renderTaskRef.current.promise;
-        renderTaskRef.current = null;
-      } catch (err) {
-        // Ignore cancellation errors
-        if (err.name !== 'RenderingCancelledException') {
-          console.error('Error rendering page:', err);
-          setError('Failed to render PDF page');
-        }
-      }
-    };
-
-    renderPage();
-  }, [pdfDoc, currentPage]);
+  const goToPrevPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1));
+  };
 
   const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+    setCurrentPage((prev) => Math.min(numPages || 1, prev + 1));
+  };
+
+  const zoomIn = () => {
+    setScale((prev) => Math.min(3, prev + 0.2));
+  };
+
+  const zoomOut = () => {
+    setScale((prev) => Math.max(0.5, prev - 0.2));
+  };
+
+  const rotate = () => {
+    setRotation((prev) => (prev + 90) % 360);
+  };
+
+  const goToPage = (pageNumber: number) => {
+    setCurrentPage(pageNumber);
+    setViewMode("single");
+    setTocOpen(false);
+  };
+
+  const toggleViewMode = () => {
+    setViewMode((prev) => (prev === "single" ? "grid" : "single"));
+  };
+
+  const cycleReadingMode = () => {
+    setReadingMode((prev) => (prev === "page" ? "vertical" : "page"));
+  };
+
+  const getReadingModeIcon = () => {
+    switch (readingMode) {
+      case "page":
+        return <ScrollText className="h-4 w-4" />;
+      case "vertical":
+        return <ArrowUpDown className="h-4 w-4" />;
     }
   };
 
-  const goToPrevPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+  const getReadingModeTitle = () => {
+    switch (readingMode) {
+      case "page":
+        return "Page Mode - Click for Vertical Scroll";
+      case "vertical":
+        return "Vertical Scroll - Click for Page Mode";
     }
   };
 
   if (loading) {
     return (
-      <div className={`flex items-center justify-center p-8 `}>
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
-          <p>Loading PDF...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Card className="p-8 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <h3 className="text-lg font-semibold mb-2">Loading PDF</h3>
+          <p className="text-muted-foreground">
+            Please wait while we load your document...
+          </p>
+        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className={`flex items-center justify-center p-8 `}>
-        <div className="text-center text-red-600">
-          <p>{error}</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Card className="p-8 text-center max-w-md">
+          <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+          <h3 className="text-lg font-semibold mb-2">Error Loading PDF</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()} variant="outline">
+            Try Again
+          </Button>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className={`flex flex-col items-center `}>
-      <div className="mb-4 flex items-center gap-4">
-        <button
-          onClick={goToPrevPage}
-          disabled={currentPage <= 1}
-          className="px-3 py-1 bg-blue-500 text-white rounded disabled:bg-gray-300 disabled:cursor-not-allowed"
-        >
-          Previous
-        </button>
-        
-        <span className="text-sm">
-          Page {currentPage} of {totalPages}
-        </span>
-        
-        <button
-          onClick={goToNextPage}
-          disabled={currentPage >= totalPages}
-          className="px-3 py-1 bg-blue-500 text-white rounded disabled:bg-gray-300 disabled:cursor-not-allowed"
-        >
-          Next
-        </button>
+    <div className="flex flex-col h-screen bg-background">
+      {/* Header with controls */}
+      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              <span className="font-medium">PDF Reader</span>
+            </div>
+            {numPages && (
+              <Badge variant="secondary">
+                {numPages} page{numPages !== 1 ? "s" : ""}
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Table of Contents */}
+            <Sheet open={tocOpen} onOpenChange={setTocOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-80">
+                <SheetHeader>
+                  <SheetTitle className="flex items-center gap-2">
+                    <BookOpen className="h-5 w-5" />
+                    Table of Contents
+                  </SheetTitle>
+                </SheetHeader>
+                <ScrollArea className="h-full mt-4">
+                  <div className="space-y-2 pr-4">
+                    {numPages &&
+                      Array.from({ length: numPages }, (_, i) => i + 1).map(
+                        (pageNum) => (
+                          <Button
+                            key={pageNum}
+                            variant={
+                              currentPage === pageNum ? "default" : "ghost"
+                            }
+                            className="w-full justify-start h-auto p-3"
+                            onClick={() => goToPage(pageNum)}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-10 rounded border overflow-hidden flex-shrink-0">
+                                <Document file={file}>
+                                  <Page
+                                    pageNumber={pageNum}
+                                    scale={0.15}
+                                    rotate={rotation}
+                                    loading={
+                                      <div className="w-full h-full bg-muted rounded flex items-center justify-center text-xs">
+                                        {pageNum}
+                                      </div>
+                                    }
+                                    className="w-full h-full object-cover"
+                                  />
+                                </Document>
+                              </div>
+                              <div className="text-left">
+                                <div className="font-medium">
+                                  Page {pageNum}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  Click to navigate
+                                </div>
+                              </div>
+                            </div>
+                          </Button>
+                        )
+                      )}
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
+
+            <Separator orientation="vertical" className="h-6" />
+
+            {/* Reading Mode Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={cycleReadingMode}
+              className="h-8 w-8 p-0"
+              title={getReadingModeTitle()}
+            >
+              {getReadingModeIcon()}
+            </Button>
+
+            <Separator orientation="vertical" className="h-6" />
+
+            {/* View Mode Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleViewMode}
+              className="h-8 w-8 p-0"
+              title={viewMode === "single" ? "Grid View" : "Single Page View"}
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+
+            <Separator orientation="vertical" className="h-6" />
+
+            {/* Zoom controls */}
+            <div className="flex items-center gap-1 border rounded-lg p-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={zoomOut}
+                disabled={scale <= 0.5}
+                
+              >
+                <ZoomOut className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium px-2 min-w-[4rem] text-center">
+                {Math.round(scale * 100)}%
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={zoomIn}
+                disabled={scale >= 3}
+                
+              >
+                <ZoomIn className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <Separator orientation="vertical" className="h-6" />
+
+            {/* Rotation control */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={rotate}
+              className="h-8 w-8 p-0"
+            >
+              <RotateCw className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {/* Navigation bar */}
+        {numPages && (
+          <div className="flex items-center justify-between px-4 pb-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPrevPage}
+                disabled={currentPage <= 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextPage}
+                disabled={currentPage >= numPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {numPages}
+              </span>
+              <div className="w-32">
+                <Progress
+                  value={(currentPage / numPages) * 100}
+                  className="h-2"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-      
-      <div className="border border-gray-300 shadow-lg">
-        <canvas ref={canvasRef} className="max-w-full h-auto" />
-      </div>
+
+      {/* PDF Content */}
+      <ScrollArea className="flex-1">
+        {viewMode === "single" ? (
+          // Single Page or Scroll Views
+          readingMode === "page" ? (
+            // Page Mode - Single page at a time
+            <div className="flex justify-center p-6">
+              <div className="max-w-full">
+                <Document
+                  file={file}
+                  onLoadSuccess={onDocumentLoadSuccess}
+                  onLoadError={onDocumentLoadError}
+                  loading={
+                    <div className="flex items-center justify-center p-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  }
+                  className="shadow-lg"
+                >
+                  <Page
+                    pageNumber={currentPage}
+                    scale={scale}
+                    rotate={rotation}
+                    loading={
+                      <div className="flex items-center justify-center p-8 bg-muted/20 rounded-lg">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    }
+                    className="shadow-lg border rounded-lg overflow-hidden"
+                  />
+                </Document>
+              </div>
+            </div>
+          ) : (
+            // Vertical Scroll Mode - All pages in a vertical column
+            <div className="flex justify-center p-6">
+              <div className="max-w-full space-y-4">
+                <Document
+                  file={file}
+                  onLoadSuccess={onDocumentLoadSuccess}
+                  onLoadError={onDocumentLoadError}
+                  loading={
+                    <div className="flex items-center justify-center p-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    </div>
+                  }
+                >
+                  {numPages &&
+                    Array.from({ length: numPages }, (_, i) => i + 1).map(
+                      (pageNum) => (
+                        <div key={pageNum} className="relative">
+                          <Page
+                            pageNumber={pageNum}
+                            scale={scale}
+                            rotate={rotation}
+                            loading={
+                              <div className="flex items-center justify-center p-8 bg-muted/20 rounded-lg">
+                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                              </div>
+                            }
+                            className="shadow-lg border rounded-lg overflow-hidden mb-4"
+                          />
+                          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                            Page {pageNum}
+                          </div>
+                        </div>
+                      )
+                    )}
+                </Document>
+              </div>
+            </div>
+          )
+        ) : (
+          // Grid View - All Pages
+          <div className="p-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              <Document
+                file={file}
+                onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={onDocumentLoadError}
+                loading={
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                }
+              >
+                {numPages &&
+                  Array.from({ length: numPages }, (_, i) => i + 1).map(
+                    (pageNum) => (
+                      <div
+                        key={pageNum}
+                        className={`relative cursor-pointer transition-all duration-200 hover:scale-105 ${
+                          currentPage === pageNum
+                            ? "ring-2 ring-primary ring-offset-2 shadow-lg"
+                            : "hover:shadow-md"
+                        }`}
+                        onClick={() => goToPage(pageNum)}
+                      >
+                        <div className="relative">
+                          <Page
+                            pageNumber={pageNum}
+                            scale={0.3}
+                            rotate={rotation}
+                            loading={
+                              <div className="flex items-center justify-center p-4 bg-muted/20 rounded-lg aspect-[3/4]">
+                                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                              </div>
+                            }
+                            className="shadow border rounded-lg overflow-hidden"
+                          />
+                          <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                            {pageNum}
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  )}
+              </Document>
+            </div>
+          </div>
+        )}
+      </ScrollArea>
     </div>
   );
-};
+}
+
+export default BasicPdfRender;
