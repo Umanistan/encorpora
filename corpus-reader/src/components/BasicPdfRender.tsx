@@ -192,8 +192,9 @@ function BasicPdfRender() {
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header with controls */}
-      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="flex items-center justify-between p-4">
+      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10 p-4">
+        <div className="flex items-center justify-between">
+          {/* Left side - Title and page info */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
@@ -204,8 +205,44 @@ function BasicPdfRender() {
                 {numPages} page{numPages !== 1 ? "s" : ""}
               </Badge>
             )}
+            {numPages && (
+              <span className="text-sm text-muted-foreground">
+                Page {currentPage} of {numPages}
+              </span>
+            )}
           </div>
 
+          {/* Center - Navigation controls */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPrevPage}
+              disabled={currentPage <= 1}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToNextPage}
+              disabled={currentPage >= (numPages || 0)}
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+            {numPages && (
+              <div className="w-24 ml-2">
+                <Progress
+                  value={(currentPage / numPages) * 100}
+                  className="h-2"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Right side - View and tool controls */}
           <div className="flex items-center gap-2">
             {/* Table of Contents */}
             <PdfToc
@@ -229,8 +266,6 @@ function BasicPdfRender() {
               {getReadingModeIcon()}
             </Button>
 
-            <Separator orientation="vertical" className="h-6" />
-
             {/* View Mode Toggle */}
             <Button
               variant="ghost"
@@ -251,10 +286,11 @@ function BasicPdfRender() {
                 size="sm"
                 onClick={zoomOut}
                 disabled={scale <= 0.5}
+                className="h-6 w-6 p-0"
               >
-                <ZoomOut className="h-4 w-4" />
+                <ZoomOut className="h-3 w-3" />
               </Button>
-              <span className="text-sm font-medium px-2 min-w-[4rem] text-center">
+              <span className="text-xs font-medium px-1 min-w-[3rem] text-center">
                 {Math.round(scale * 100)}%
               </span>
               <Button
@@ -262,12 +298,11 @@ function BasicPdfRender() {
                 size="sm"
                 onClick={zoomIn}
                 disabled={scale >= 3}
+                className="h-6 w-6 p-0"
               >
-                <ZoomIn className="h-4 w-4" />
+                <ZoomIn className="h-3 w-3" />
               </Button>
             </div>
-
-            <Separator orientation="vertical" className="h-6" />
 
             {/* Rotation control */}
             <Button
@@ -280,44 +315,6 @@ function BasicPdfRender() {
             </Button>
           </div>
         </div>
-
-        {/* Navigation bar */}
-        {numPages && (
-          <div className="flex items-center justify-between px-4 pb-4">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToPrevPage}
-                disabled={currentPage <= 1}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToNextPage}
-                disabled={currentPage >= numPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {numPages}
-              </span>
-              <div className="w-32">
-                <Progress
-                  value={(currentPage / numPages) * 100}
-                  className="h-2"
-                />
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* PDF Content */}
