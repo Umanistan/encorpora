@@ -10,6 +10,13 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 
 import {
   ChevronLeft,
@@ -29,6 +36,7 @@ import {
   Lightbulb,
   Minus,
   Plus,
+  Menu,
 } from "lucide-react";
 import PdfToc from "./pdfViewer/PdfToc";
 import { useTheme } from "@/components/ThemeProvider";
@@ -224,190 +232,384 @@ function BasicPdfRender() {
   return (
     <div className="flex flex-col h-screen bg-background">
       {/* Header with controls */}
-      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-10 p-4">
-        <div className="flex items-center justify-between">
-          {/* Left side - Title and page info */}
-
-          <div className="flex items-center gap-4">
+      <div className="border-b bg-card/50 backdrop-blur-sm sticky top-0 z-20">
+        {/* Main Header Row */}
+        <div className="flex items-center justify-between p-3 md:p-4">
+          {/* Left side - Back button and title */}
+          <div className="flex items-center gap-2 md:gap-4 min-w-0 flex-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => window.history.back()}
               aria-label="Back"
+              className="shrink-0"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4 md:w-5 md:h-5" />
             </Button>
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              <span className="font-medium">PDF Reader</span>
+            <div className="flex items-center gap-1 md:gap-2 min-w-0">
+              <FileText className="h-4 w-4 md:h-5 md:w-5 text-primary shrink-0" />
+              <span className="font-medium text-sm md:text-base truncate">
+                PDF Reader
+              </span>
             </div>
             {numPages && (
-              <Badge variant="secondary">
+              <Badge
+                variant="secondary"
+                className="hidden sm:inline-flex text-xs"
+              >
                 {numPages} page{numPages !== 1 ? "s" : ""}
               </Badge>
             )}
-            {numPages && (
-              <span className="text-sm text-muted-foreground">
-                Page {currentPage} of {numPages}
-              </span>
-            )}
           </div>
 
-          {/* Center - Navigation controls */}
-          <div className="flex items-center gap-2">
+          {/* Center - Page info and navigation (mobile-first) */}
+          <div className="flex items-center gap-1 md:gap-2 mx-2 md:mx-4">
             <Button
               variant="outline"
               size="sm"
               onClick={goToPrevPage}
               disabled={currentPage <= 1}
+              className="h-8 px-2 md:px-3"
             >
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              Previous
+              <ChevronLeft className="h-3 w-3 md:h-4 md:w-4" />
+              <span className="hidden sm:inline ml-1">Prev</span>
             </Button>
+
+            {numPages && (
+              <div className="flex items-center gap-1 md:gap-2 px-1 md:px-2">
+                <span className="text-xs md:text-sm font-medium whitespace-nowrap">
+                  {currentPage}/{numPages}
+                </span>
+                <div className="w-12 md:w-16 hidden sm:block">
+                  <Progress
+                    value={(currentPage / numPages) * 100}
+                    className="h-1.5 md:h-2"
+                  />
+                </div>
+              </div>
+            )}
+
             <Button
               variant="outline"
               size="sm"
               onClick={goToNextPage}
               disabled={currentPage >= (numPages || 0)}
+              className="h-8 px-2 md:px-3"
             >
-              Next
-              <ChevronRight className="h-4 w-4 ml-1" />
+              <span className="hidden sm:inline mr-1">Next</span>
+              <ChevronRight className="h-3 w-3 md:h-4 md:w-4" />
             </Button>
-            {numPages && (
-              <div className="w-24 ml-2">
-                <Progress
-                  value={(currentPage / numPages) * 100}
-                  className="h-2"
-                />
-              </div>
-            )}
           </div>
 
-          {/* Right side - View and tool controls */}
-          <div className="flex items-center gap-2">
-            {/* Table of Contents */}
-            <PdfToc
-              currentPage={currentPage}
-              file={file}
-              goToPage={goToPage}
-              numPages={numPages}
-              rotation={rotation}
-            />
-
-            <Separator orientation="vertical" className="h-6" />
-
-            {/* Reading Mode Toggle */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={cycleReadingMode}
-              className="h-8 w-8 p-0"
-              title={getReadingModeTitle()}
-            >
-              {getReadingModeIcon()}
-            </Button>
-
-            {/* View Mode Toggle */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleViewMode}
-              className="h-8 w-8 p-0"
-              title={viewMode === "single" ? "Grid View" : "Single Page View"}
-            >
-              <Grid3X3 className="h-4 w-4" />
-            </Button>
-
-            <Separator orientation="vertical" className="h-6" />
-
-            {/* Zoom controls */}
-            <div className="flex items-center gap-1 border rounded-lg p-1">
+          {/* Right side - Menu toggle and essential controls */}
+          <div className="flex items-center gap-1 md:gap-2 shrink-0">
+            {/* Essential controls always visible */}
+            <div className="flex items-center gap-1 md:hidden">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={zoomOut}
                 disabled={scale <= 0.5}
-                className="h-6 w-6 p-0"
+                className="h-8 w-8 p-0"
               >
                 <ZoomOut className="h-3 w-3" />
               </Button>
-              <span className="text-xs font-medium px-1 min-w-[3rem] text-center">
-                {Math.round(scale * 100)}%
-              </span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={zoomIn}
                 disabled={scale >= 3}
-                className="h-6 w-6 p-0"
+                className="h-8 w-8 p-0"
               >
                 <ZoomIn className="h-3 w-3" />
               </Button>
             </div>
 
-            {/* Rotation control */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={rotate}
-              className="h-8 w-8 p-0"
-              title="Rotate PDF"
-            >
-              <RotateCw className="h-4 w-4" />
-            </Button>
+            {/* Mobile drawer toggle */}
+            <Drawer>
+              <DrawerTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0 md:hidden"
+                  aria-label="Open settings"
+                >
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent>
+                <DrawerHeader>
+                  <DrawerTitle>PDF Settings</DrawerTitle>
+                </DrawerHeader>
+                <div className="p-4 pb-8">
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* View Controls */}
+                    <div className="space-y-3">
+                      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        View
+                      </div>
+                      <div className="space-y-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={cycleReadingMode}
+                          className="w-full h-10 justify-start gap-3"
+                        >
+                          {getReadingModeIcon()}
+                          <span className="text-sm">
+                            {readingMode === "page"
+                              ? "Page Mode"
+                              : "Scroll Mode"}
+                          </span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={toggleViewMode}
+                          className="w-full h-10 justify-start gap-3"
+                        >
+                          <Grid3X3 className="h-4 w-4" />
+                          <span className="text-sm">
+                            {viewMode === "single"
+                              ? "Single View"
+                              : "Grid View"}
+                          </span>
+                        </Button>
+                      </div>
+                    </div>
 
-            <Separator orientation="vertical" className="h-6" />
+                    {/* Tools */}
+                    <div className="space-y-3">
+                      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Tools
+                      </div>
+                      <div className="space-y-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={rotate}
+                          className="w-full h-10 justify-start gap-3"
+                        >
+                          <RotateCw className="h-4 w-4" />
+                          <span className="text-sm">Rotate</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={toggleTheme}
+                          className="w-full h-10 justify-start gap-3"
+                        >
+                          {theme === "dark" ? (
+                            <Sun className="h-4 w-4" />
+                          ) : (
+                            <Moon className="h-4 w-4" />
+                          )}
+                          <span className="text-sm">
+                            {theme === "dark" ? "Light Mode" : "Dark Mode"}
+                          </span>
+                        </Button>
+                      </div>
+                    </div>
 
-            {/* Brightness controls */}
-            <div className="flex items-center gap-1 border rounded-lg p-1">
+                    {/* Zoom Control */}
+                    <div className="col-span-2 space-y-3">
+                      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Zoom
+                      </div>
+                      <div className="flex items-center gap-3 bg-muted/30 rounded-xl p-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={zoomOut}
+                          disabled={scale <= 0.5}
+                          className="h-10 w-10 p-0 rounded-full"
+                        >
+                          <ZoomOut className="h-5 w-5" />
+                        </Button>
+                        <div className="flex-1 text-center">
+                          <span className="text-lg font-semibold">
+                            {Math.round(scale * 100)}%
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={zoomIn}
+                          disabled={scale >= 3}
+                          className="h-10 w-10 p-0 rounded-full"
+                        >
+                          <ZoomIn className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Brightness Control */}
+                    <div className="col-span-2 space-y-3">
+                      <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                        Brightness
+                      </div>
+                      <div className="flex items-center gap-3 bg-muted/30 rounded-xl p-4">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={decreaseBrightness}
+                          disabled={brightness <= 20}
+                          className="h-10 w-10 p-0 rounded-full"
+                        >
+                          <Minus className="h-5 w-5" />
+                        </Button>
+                        <div className="flex-1 text-center flex items-center justify-center gap-2">
+                          <Lightbulb className="h-5 w-5" />
+                          <span className="text-lg font-semibold">
+                            {brightness}%
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={increaseBrightness}
+                          disabled={brightness >= 150}
+                          className="h-10 w-10 p-0 rounded-full"
+                        >
+                          <Plus className="h-5 w-5" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Table of Contents */}
+                    <div className="col-span-2 pt-2">
+                      <PdfToc
+                        currentPage={currentPage}
+                        file={file}
+                        goToPage={goToPage}
+                        numPages={numPages}
+                        rotation={rotation}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </DrawerContent>
+            </Drawer>
+
+            {/* Desktop controls - always visible on larger screens */}
+            <div className="hidden md:flex items-center gap-2">
+              <PdfToc
+                currentPage={currentPage}
+                file={file}
+                goToPage={goToPage}
+                numPages={numPages}
+                rotation={rotation}
+              />
+
+              <Separator orientation="vertical" className="h-6" />
+
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={decreaseBrightness}
-                disabled={brightness <= 20}
-                className="h-6 w-6 p-0"
-                title="Decrease brightness"
+                onClick={cycleReadingMode}
+                className="h-8 w-8 p-0"
+                title={getReadingModeTitle()}
               >
-                <Minus className="h-3 w-3" />
+                {getReadingModeIcon()}
               </Button>
-              <div className="flex items-center gap-1 px-1">
-                <Lightbulb className="h-3 w-3" />
-                <span className="text-xs font-medium min-w-[2.5rem] text-center">
-                  {brightness}%
-                </span>
-              </div>
+
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={increaseBrightness}
-                disabled={brightness >= 150}
-                className="h-6 w-6 p-0"
-                title="Increase brightness"
+                onClick={toggleViewMode}
+                className="h-8 w-8 p-0"
+                title={viewMode === "single" ? "Grid View" : "Single Page View"}
               >
-                <Plus className="h-3 w-3" />
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+
+              <Separator orientation="vertical" className="h-6" />
+
+              <div className="flex items-center gap-1 border rounded-lg p-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={zoomOut}
+                  disabled={scale <= 0.5}
+                  className="h-6 w-6 p-0"
+                >
+                  <ZoomOut className="h-3 w-3" />
+                </Button>
+                <span className="text-xs font-medium px-1 min-w-[3rem] text-center">
+                  {Math.round(scale * 100)}%
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={zoomIn}
+                  disabled={scale >= 3}
+                  className="h-6 w-6 p-0"
+                >
+                  <ZoomIn className="h-3 w-3" />
+                </Button>
+              </div>
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={rotate}
+                className="h-8 w-8 p-0"
+                title="Rotate PDF"
+              >
+                <RotateCw className="h-4 w-4" />
+              </Button>
+
+              <Separator orientation="vertical" className="h-6" />
+
+              <div className="flex items-center gap-1 border rounded-lg p-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={decreaseBrightness}
+                  disabled={brightness <= 20}
+                  className="h-6 w-6 p-0"
+                  title="Decrease brightness"
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <div className="flex items-center gap-1 px-1">
+                  <Lightbulb className="h-3 w-3" />
+                  <span className="text-xs font-medium min-w-[2.5rem] text-center">
+                    {brightness}%
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={increaseBrightness}
+                  disabled={brightness >= 150}
+                  className="h-6 w-6 p-0"
+                  title="Increase brightness"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+
+              <Separator orientation="vertical" className="h-6" />
+
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+                className="h-8 w-8 p-0"
+                title={
+                  theme === "dark"
+                    ? "Switch to Light Mode"
+                    : "Switch to Dark Mode"
+                }
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )}
               </Button>
             </div>
-
-            <Separator orientation="vertical" className="h-6" />
-
-            {/* Theme toggle */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={toggleTheme}
-              className="h-8 w-8 p-0"
-              title={
-                theme === "dark"
-                  ? "Switch to Light Mode"
-                  : "Switch to Dark Mode"
-              }
-            >
-              {theme === "dark" ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )}
-            </Button>
           </div>
         </div>
       </div>
