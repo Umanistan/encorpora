@@ -1,5 +1,10 @@
-import { readFileSrc } from "@/lib/utils";
-import { useEffect, useState, useCallback } from "react";
+import {
+  readFileSrc,
+  updateBookProgress,
+  getBookInformation,
+  BookEntry,
+} from "@/lib/utils";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
@@ -59,7 +64,6 @@ function BasicPdfRender() {
     setRotation,
     setViewMode,
     setReadingMode,
-    setTheme: setPdfTheme,
     setBrightness,
   } = usePdfViewerStore();
 
@@ -69,10 +73,42 @@ function BasicPdfRender() {
   const [error, setError] = useState<string | null>(null);
   const [file, setFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [bookInfo, setBookInfo] = useState<BookEntry | null>(null);
+
+  // Use ref to track the last saved page to avoid unnecessary updates
+  const lastSavedPageRef = useRef<number>(1);
 
   // Extract settings from store
   const { scale, rotation, viewMode, readingMode, brightness } = settings;
 
+  // Load book information and restore last read page
+  useEffect(() => {
+    if (!bookPath) {
+      console.log("No bookPath provided");
+      return;
+    }
+
+    const loadBookInfo = async () => {
+      try {
+        const info = await getBookInformation(bookPath);
+        if (info) {
+          setBookInfo(info);
+          // Restore last read page if available
+          if (info.last_read_page && info.last_read_page > 0) {
+            setCurrentPage(info.last_read_page);
+            lastSavedPageRef.current = info.last_read_page;
+            console.log(`Restored last read page: ${info.last_read_page}`);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading book information:", error);
+      }
+    };
+
+    loadBookInfo();
+  }, [bookPath]);
+
+  // Load PDF file
   useEffect(() => {
     if (!bookPath) {
       console.log("No bookPath provided");
@@ -120,6 +156,29 @@ function BasicPdfRender() {
       clearTimeout(timeoutId);
     };
   }, [bookPath]);
+
+  // Update progress when current page changes
+  useEffect(() => {
+    if (!bookPath || !numPages || currentPage === lastSavedPageRef.current) {
+      return;
+    }
+
+    // Debounce the progress update to avoid too many database calls
+    const timeoutId = setTimeout(async () => {
+      try {
+        const progress = Math.round((currentPage / numPages) * 100);
+        await updateBookProgress(bookPath, currentPage, progress);
+        lastSavedPageRef.current = currentPage;
+        console.log(
+          `Progress updated: Page ${currentPage}/${numPages} (${progress}%)`
+        );
+      } catch (error) {
+        console.error("Error updating book progress:", error);
+      }
+    }, 1000); // Wait 1 second before saving to avoid rapid updates
+
+    return () => clearTimeout(timeoutId);
+  }, [currentPage, numPages, bookPath]);
 
   const onDocumentLoadSuccess = useCallback(
     ({ numPages }: DocumentLoadSuccess) => {
@@ -249,7 +308,7 @@ function BasicPdfRender() {
             <div className="flex items-center gap-1 md:gap-2 min-w-0">
               <FileText className="h-4 w-4 md:h-5 md:w-5 text-primary shrink-0" />
               <span className="font-medium text-sm md:text-base truncate">
-                PDF Reader
+              {bookInfo?.title}
               </span>
             </div>
             {numPages && (
