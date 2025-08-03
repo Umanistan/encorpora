@@ -37,6 +37,11 @@ class Command(BaseCommand):
             llm = load_llm_provider("xai", completion_model="grok-3-mini")
         elif provider == "openai":
             llm = load_llm_provider("openai", completion_model="gpt-4o")
+        elif provider == "anthropic":
+            llm = load_llm_provider("anthropic", completion_model="claude-3-5-sonnet-20241022")
+        elif provider == "anthropic":
+            llm = load_llm_provider("anthropic", completion_model="claude-3-5-sonnet-20241022")
+            llm = load_llm_provider("openai", completion_model="gpt-4o")
             # llm = load_llm_provider("openai", completion_model="gpt-3.5-turbo")
         else:
             raise ValueError(f"Unknown provider: {provider}")
