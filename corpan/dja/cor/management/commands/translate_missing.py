@@ -32,10 +32,13 @@ class Command(BaseCommand):
         provider = opts["provider"]
 
         if provider == "local":
+            print("LOCAL")
             llm = load_llm_provider("local", completion_model="qwen3-30b-a3b-mlx")
         elif provider == "xai":
+            print("XAI")
             llm = load_llm_provider("xai", completion_model="grok-3-mini")
         elif provider == "openai":
+            print("OPENAI")
             llm = load_llm_provider("openai", completion_model="gpt-4o")
         elif provider == "anthropic":
             llm = load_llm_provider("anthropic", completion_model="claude-3-5-sonnet-20241022")
@@ -56,7 +59,9 @@ class Command(BaseCommand):
         entries = Entry.objects.all().order_by("?" if opts["random"] else "id")
         if only_a1:
             entries = entries.filter(level="A1")
-        # REMOVE: if limit: entries = entries[:limit]
+
+        if limit:
+            entries = entries[:limit]
 
         total_translated = 0
         start_time = time.time()
