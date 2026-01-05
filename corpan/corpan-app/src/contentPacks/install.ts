@@ -84,6 +84,30 @@ const fetchManifestText = async (url: string) => {
 export const installPack = async (
   request: InstallRequest
 ): Promise<InstallResult> => {
+  const trimmed = request.manifestUrl.trim()
+
+  // Detect .zip URLs and handle as download install
+  if (trimmed.endsWith('.zip')) {
+    // Extract pack ID from filename (remove .zip extension and normalize)
+    const url = new URL(trimmed, window.location.href)
+    const pathname = url.pathname
+    const filename = pathname.split('/').pop() || ''
+    // Remove .zip and convert hyphens to underscores to match manifest convention
+    const packId = filename.replace(/\.zip$/, '').replace(/-/g, '_')
+
+    if (!packId) {
+      throw new Error("Could not determine pack ID from ZIP filename")
+    }
+
+    return installPackFromDownload({
+      packId,
+      downloadUrl: trimmed,
+      expectedSha256: request.expectedHash,
+      source: request.source,
+    })
+  }
+
+  // Handle manifest.json URLs
   const normalized = normalizeManifestUrl(request.manifestUrl)
   if (!normalized) {
     throw new Error("Missing manifest URL")
